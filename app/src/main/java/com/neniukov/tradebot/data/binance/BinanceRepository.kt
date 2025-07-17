@@ -32,7 +32,10 @@ class BinanceRepository @Inject constructor(
             val query = "timestamp=$serverTime"
             val signature = generateSignature(query, secretKey)
             val response = api.getBalance(apiKey, serverTime, signature)
-            response.firstOrNull { it.asset == "USDT" }?.balance ?: "-.-"
+            response.firstOrNull { it.asset == "USDT" }?.let {
+                val result = (it.balance.toDoubleOrNull() ?: 0.0) + (it.crossUnPnl.toDoubleOrNull() ?: 0.0)
+                result.toString()
+            } ?: run { "-.-" }
         }
     }
 
@@ -45,7 +48,10 @@ class BinanceRepository @Inject constructor(
             val query = "timestamp=$serverTime"
             val signature = generateSignature(query, secretKey.orEmpty())
             val response = api.getBalance(apiKey, serverTime, signature)
-            response.firstOrNull { it.asset == "USDT" }?.balance ?: "-.-"
+            response.firstOrNull { it.asset == "USDT" }?.let {
+                val result = (it.balance.toDoubleOrNull() ?: 0.0) + (it.crossUnPnl.toDoubleOrNull() ?: 0.0)
+                result.toString()
+            } ?: run { "-.-" }
         }
     }
 
