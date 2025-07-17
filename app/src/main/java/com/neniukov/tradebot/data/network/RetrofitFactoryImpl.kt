@@ -26,7 +26,7 @@ class RetrofitFactoryImpl(
             .readTimeout(TIMEOUT_SECS, TimeUnit.SECONDS)
 
         val builder: Retrofit.Builder = Retrofit.Builder()
-            .baseUrl(BASE_URL)
+            .baseUrl(BASE_URL_BINANCE)
             .client(okHttpBuilder.build())
             .addConverterFactory(GsonConverterFactory.create(gson))
 
@@ -37,6 +37,7 @@ class RetrofitFactoryImpl(
         const val TIMEOUT_SECS: Long = 60
         private const val DEMO_BASE_URL = "https://api-demo.bybit.com"
         private const val BASE_URL = "https://api.bybit.com"
+        private const val BASE_URL_BINANCE = "https://fapi.binance.com"
         const val SOCKET_URL = "wss://stream.bybit.com/v5"
     }
 

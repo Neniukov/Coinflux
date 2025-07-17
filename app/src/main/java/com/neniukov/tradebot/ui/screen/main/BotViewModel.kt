@@ -10,8 +10,9 @@ import android.util.Log
 import com.neniukov.tradebot.data.local.SharedPrefs
 import com.neniukov.tradebot.data.model.response.PositionResponse
 import com.neniukov.tradebot.data.service.TradingBotService
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.defaultData
-import com.neniukov.tradebot.domain.usecase.ConnectBybitUseCase
+import com.neniukov.tradebot.domain.usecase.ConnectToExchangeUseCase
 import com.neniukov.tradebot.domain.usecase.GetAllTickersUseCase
 import com.neniukov.tradebot.domain.usecase.GetTickerInfoUseCase
 import com.neniukov.tradebot.domain.usecase.LeverageUseCase
@@ -31,7 +32,7 @@ class BotViewModel @Inject constructor(
     private val application: Application,
     private val getAllTickersUseCase: GetAllTickersUseCase,
     private val prefs: SharedPrefs,
-    private val connectBybitUseCase: ConnectBybitUseCase,
+    private val connectBybitUseCase: ConnectToExchangeUseCase,
     private val getTickerInfoUseCase: GetTickerInfoUseCase,
     private val leverageUseCase: LeverageUseCase,
     private val placeOrderUseCase: PlaceOrderUseCase
@@ -40,7 +41,7 @@ class BotViewModel @Inject constructor(
     private val ticker = MutableStateFlow(defaultData())
     val tickerFlow = ticker.asStateFlow()
 
-    private val positions = MutableStateFlow<List<PositionResponse>?>(null)
+    private val positions = MutableStateFlow<List<CurrentPosition>?>(null)
     val positionsFlow = positions.asStateFlow()
 
     private val isWorking = MutableStateFlow(false)
@@ -92,7 +93,9 @@ class BotViewModel @Inject constructor(
 
             launch {
                 botService?.get()?.walletBalanceFlow?.collectLatest {
-                    walletBalance.value = it
+                    walletBalance.value = it?.toDoubleOrNull()
+                        ?.let { balance -> String.format("%.2f", balance) }
+                        ?: "-.-"
                 }
             }
 
@@ -213,7 +216,7 @@ class BotViewModel @Inject constructor(
         showLogIn.value = true
     }
 
-    fun closePosition(position: PositionResponse) {
+    fun closePosition(position: CurrentPosition) {
         doLaunch(
             job = {
                 placeOrderUseCase(position.symbol, position.side, position.size)

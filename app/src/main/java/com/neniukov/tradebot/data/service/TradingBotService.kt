@@ -13,11 +13,14 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.neniukov.tradebot.MainActivity
 import com.neniukov.tradebot.R
+import com.neniukov.tradebot.data.binance.BinanceRepository
+import com.neniukov.tradebot.data.binance.mapper.toDomain
+import com.neniukov.tradebot.data.binance.model.response.BinancePositionResponse
+import com.neniukov.tradebot.data.binance.model.response.OpenOrderResponse
 import com.neniukov.tradebot.data.managers.OrderManager
 import com.neniukov.tradebot.data.model.mapper.mapToCandle
-import com.neniukov.tradebot.data.model.response.PositionResponse
-import com.neniukov.tradebot.data.repository.BybitRepository
 import com.neniukov.tradebot.domain.model.Candle
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
 import com.neniukov.tradebot.domain.model.Ticker
 import com.neniukov.tradebot.domain.model.TradingState
@@ -33,12 +36,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+/*
+- если нет тейк профита то сделать 2 тейк профита
+- если 2 тейк профита и размер верный то скип
+- если 2 тайк профита и размер неверный то оnменить и сделать 2 новых тейка
+- если 1 тейк профит и размер верный то скип
+- если 1 тейк профит и размер неверный то отменить и сделать 2 новых тейка
 
+ */
 @AndroidEntryPoint
 class TradingBotService : Service() {
 
     @Inject
-    lateinit var repository: BybitRepository
+    lateinit var repository: BinanceRepository
 
     @Inject
     lateinit var orderManager: OrderManager
@@ -46,7 +56,7 @@ class TradingBotService : Service() {
     private val currentPosition = MutableStateFlow(Side.None)
     val currentPositionFlow = currentPosition.asStateFlow()
 
-    private val positions = MutableStateFlow<List<PositionResponse>?>(null)
+    private val positions = MutableStateFlow<List<CurrentPosition>?>(null)
     val positionsFlow = positions.asStateFlow()
 
     private val error = MutableStateFlow<String?>(null)
@@ -80,6 +90,7 @@ class TradingBotService : Service() {
 
     private val SMA_PERIOD = 15
     private val TAKE_PROFIT_PERCENT = 0.01 // 1%
+    private val TAKE_PROFIT_PERCENT_FOR_BAD_POSITION = 0.002 // 1%
 
     inner class LocalBinder : Binder() {
         fun getService(): TradingBotService = this@TradingBotService
@@ -154,13 +165,11 @@ class TradingBotService : Service() {
             while (isActive) {
                 cryptoData?.let { cryptoData ->
                     try {
-                        val result = repository.getMarkPriceKline(
+                        val list = repository.getMarkPriceKline(
                             symbol = cryptoData.symbol,
                             interval = orderManager.interval,
                         )
-
-                        val list = result?.list
-                        val candles = list?.map { mapToCandle(it) }.orEmpty()
+                        val candles = list.map { mapToCandle(it) }
                         runTradingLogic(candles)
                         updateNotification("Bot active")
                     } catch (e: Exception) {
@@ -178,7 +187,7 @@ class TradingBotService : Service() {
     fun startAutomatedBot(amountInUSD: String) {
         scope.launch {
             isActiveAutomatedBot = true
-            repository.loadPriceForTickers()
+//            repository.loadPriceForTickers()
             updateNotification("Bot active")
         }
     }
@@ -201,36 +210,54 @@ class TradingBotService : Service() {
     private fun loadPositions() {
         jobPositions = scope.launch {
             while (isActive) {
-                val allPositions = repository.getAllPositions()
-                val firstPosition = allPositions.firstOrNull()
-                if (firstPosition != null) {
-                    state = state.copy(
-                        isInPosition = true,
-                        initialEntryPrice = firstPosition.avgPrice.toDouble(),
-                        currentAverageEntryPrice = firstPosition.avgPrice.toDouble(),
-                        totalPositionQuantity = firstPosition.size.toDouble(),
-                        baseOrderQuantity = cryptoData?.qty?.toDouble() ?: 0.0
-                    )
-                    val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT)
-                    repository.setTP(firstPosition, takeProfitPrice)
-                    val markPrice = firstPosition.markPrice.toDoubleOrNull()
-                    val entryPrice = firstPosition.avgPrice.toDoubleOrNull()
-                    if (markPrice != null && entryPrice != null) {
-                        addPosition(firstPosition)
-                    }
-                    val title = "${firstPosition.symbol} Pnl: ${"%.2f".format(firstPosition.unrealisedPnl.toDouble())}$"
-                    updateNotification(title)
-                }
                 val balance = repository.getBalance()
-                positions.emit(allPositions)
                 walletBalance.emit(balance)
-                if (allPositions.isEmpty()) {
-                    state = state.copy(isInPosition = false)
-                }
-                if (allPositions.isEmpty()) {
-                    delay(orderManager.requestDelay)
-                } else {
+                val allPositions = repository.getAllPositions()
+                var openOrders = listOf<OpenOrderResponse>()
+                if (allPositions.isNotEmpty()) {
+                    val firstPosition = allPositions.firstOrNull()
+                    if (firstPosition != null) {
+                        state = state.copy(
+                            isInPosition = true,
+                            initialEntryPrice = firstPosition.entryPrice.toDouble(),
+                            currentAverageEntryPrice = firstPosition.entryPrice.toDouble(),
+                            totalPositionQuantity = firstPosition.positionAmt.toDouble(),
+                            baseOrderQuantity = cryptoData?.qty?.toDouble() ?: 0.0
+                        )
+                        openOrders = repository.getOpenOrders(firstPosition.symbol)
+                        if (openOrders.isEmpty() || openOrders.first().origQty != firstPosition.positionAmt) {
+                            if (openOrders.isNotEmpty()) {
+                                repository.cancelOpenOrders(firstPosition.symbol)
+                            }
+                            val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
+                            val takeProfitPrice = state.currentAverageEntryPrice * (1 + if (numberOfInputs > 30) TAKE_PROFIT_PERCENT_FOR_BAD_POSITION else TAKE_PROFIT_PERCENT)
+                            repository.setTP(
+                                symbol = firstPosition.symbol,
+                                side = "SELL",
+                                quantity = firstPosition.positionAmt,
+                                closePrice = takeProfitPrice.toString()
+                            )
+                        }
+                        val markPrice = firstPosition.markPrice.toDoubleOrNull()
+                        val entryPrice = firstPosition.entryPrice.toDoubleOrNull()
+                        if (markPrice != null && entryPrice != null) {
+                            addPosition(firstPosition)
+                        }
+                        val title =
+                            "${firstPosition.symbol} Pnl: ${"%.2f".format(firstPosition.unRealizedProfit?.toDouble())}$"
+                        updateNotification(title)
+                    }
+                    positions.emit(allPositions.map { position ->
+                        openOrders.firstOrNull { it.symbol == position.symbol }?.let { order ->
+                            position.toDomain(order.price)
+                        } ?: run { position.toDomain() }
+                    })
                     delay(orderManager.requestDelayForOpeningPosition)
+                } else {
+                    positions.emit(emptyList())
+                    state = state.copy(isInPosition = false)
+                    updateNotification("No active positions")
+                    delay(orderManager.requestDelay)
                 }
             }
         }
@@ -283,7 +310,10 @@ class TradingBotService : Service() {
             val latestCandle = candles.last()
             val latestCandleStartTimeMillis = latestCandle.startTime.toLong()
             if (latestCandleStartTimeMillis <= state.lastCandleTime) {
-                Log.e("botservice", "No new candle or already processed. Last processed: ${state.lastCandleTime}, Current: $latestCandleStartTimeMillis")
+                Log.e(
+                    "botservice",
+                    "No new candle or already processed. Last processed: ${state.lastCandleTime}, Current: $latestCandleStartTimeMillis"
+                )
                 return
             }
             state = state.copy(lastCandleTime = latestCandleStartTimeMillis)
@@ -315,7 +345,7 @@ class TradingBotService : Service() {
         val orderResult =
             repository.placeMarketOrder(cryptoData?.symbol.orEmpty(), "Buy", cryptoData?.qty.orEmpty())
 
-        if (orderResult?.retCode == 0) {
+        if (orderResult?.orderId != null) {
             state = state.copy(
                 isInPosition = true,
                 initialEntryPrice = currentPrice,
@@ -324,21 +354,24 @@ class TradingBotService : Service() {
                 baseOrderQuantity = cryptoData?.qty?.toDouble() ?: 0.0,
             )
         } else {
-            Log.e("botservice", "Failed to open initial LONG position. Status: ${orderResult?.retMsg}")
+            Log.e("botservice", "Failed to open initial LONG position. Status: $orderResult")
         }
     }
 
-    private suspend fun addPosition(position: PositionResponse) {
-        // Здесь мы добавляем позицию с тем же базовым объемом
-        val orderQuantity = state.baseOrderQuantity
+    private suspend fun addPosition(position: BinancePositionResponse) {
+        // Здесь мы добавляем позицию с половиной объема от базового ордера
+        val orderQuantity = state.baseOrderQuantity / 2
         val markPrice = position.markPrice.toDouble()
-        val entryPrice = position.avgPrice.toDouble()
+        val entryPrice = position.entryPrice.toDouble()
 
         val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
         val percentageOfEntryPrice = if (numberOfInputs > 10) 0.03 else 0.02
         val differenceForEntry = entryPrice * percentageOfEntryPrice
         if (entryPrice - markPrice < differenceForEntry) {
-            Log.e("botservice", "Not adding to position. entryPrice: $entryPrice, markPrice: $markPrice, differenceForEntry: $differenceForEntry")
+            Log.e(
+                "botservice",
+                "Not adding to position. entryPrice: $entryPrice, markPrice: $markPrice, differenceForEntry: $differenceForEntry"
+            )
             return
         }
         if (orderQuantity <= 0) {

@@ -2,6 +2,8 @@ package com.neniukov.tradebot.di
 
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
+import com.neniukov.tradebot.data.binance.BinanceApiService
+import com.neniukov.tradebot.data.binance.BinanceRepository
 import com.neniukov.tradebot.data.local.SharedPrefs
 import com.neniukov.tradebot.data.managers.AutomatedBotManager
 import com.neniukov.tradebot.data.network.RetrofitFactoryImpl
@@ -38,6 +40,13 @@ class NetworkModule {
     @Provides
     fun provideBybitRepository(bybitService: BybitApiService, orderManager: OrderManager, prefs: SharedPrefs, webSocketService: WebSocketService) =
         BybitRepository(bybitService, orderManager, prefs, webSocketService)
+
+    @Provides
+    fun provideBinanceService(retrofit: Retrofit) = retrofit.create(BinanceApiService::class.java)
+
+    @Provides
+    fun provideBinanceRepository(api: BinanceApiService, prefs: SharedPrefs) =
+        BinanceRepository(api, prefs)
 
     @Provides
     fun provideOrderManager(): OrderManager = EmaLongOrderManager()

@@ -58,7 +58,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.neniukov.tradebot.R
-import com.neniukov.tradebot.data.model.response.PositionResponse
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
 import com.neniukov.tradebot.ui.theme.EndGradient
 import com.neniukov.tradebot.ui.theme.Gray
@@ -67,8 +67,8 @@ import com.neniukov.tradebot.ui.theme.LightGray
 import com.neniukov.tradebot.ui.theme.Red
 
 fun LazyListScope.positionsView(
-    positions: State<List<PositionResponse>?>,
-    onClosePosition: (PositionResponse) -> Unit,
+    positions: State<List<CurrentPosition>?>,
+    onClosePosition: (CurrentPosition) -> Unit,
     onStatisticsClick: () -> Unit
 ) {
     item(key = "positions_title") {
@@ -143,8 +143,8 @@ fun LazyListScope.positionsView(
 @Composable
 private fun PositionItemView(
     modifier: Modifier,
-    position: PositionResponse,
-    onClosePosition: (PositionResponse) -> Unit
+    position: CurrentPosition,
+    onClosePosition: (CurrentPosition) -> Unit
 ) {
     Column(
         modifier = modifier
@@ -330,6 +330,7 @@ private fun PositionItemView(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun PnlView(unrealisedPnl: String) {
+    if (unrealisedPnl.isBlank()) return
     val number = unrealisedPnl.toDouble()
     val pnl = String.format("%.2f", number)
     val previousBalance = remember { mutableStateOf(pnl) }
