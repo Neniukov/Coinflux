@@ -37,9 +37,9 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 /*
-- если нет тейк профита то сделать 2 тейк профита
-- если 2 тейк профита и размер верный то скип
-- если 2 тайк профита и размер неверный то оnменить и сделать 2 новых тейка
+- если нет тейк профита то сделать 2 тейк профита +
+- если 2 тейк профита и размер верный то скип +
+- если 2 тайк профита и размер неверный то отменить и сделать 2 новых тейка
 - если 1 тейк профит и размер верный то скип
 - если 1 тейк профит и размер неверный то отменить и сделать 2 новых тейка
 
@@ -89,8 +89,9 @@ class TradingBotService : Service() {
     private var state = TradingState()
 
     private val SMA_PERIOD = 15
-    private val TAKE_PROFIT_PERCENT = 0.01 // 1%
-    private val TAKE_PROFIT_PERCENT_FOR_BAD_POSITION = 0.002 // 1%
+    private val FIRST_TAKE_PROFIT_PERCENT = 0.01 // 1%
+    private val SECOND_TAKE_PROFIT_PERCENT = 0.015 // 1.5%
+    private val TAKE_PROFIT_PERCENT_FOR_BAD_POSITION = 0.003 // 1%
 
     inner class LocalBinder : Binder() {
         fun getService(): TradingBotService = this@TradingBotService
@@ -225,19 +226,7 @@ class TradingBotService : Service() {
                             baseOrderQuantity = cryptoData?.qty?.toDouble() ?: 0.0
                         )
                         openOrders = repository.getOpenOrders(firstPosition.symbol)
-                        if (openOrders.isEmpty() || openOrders.first().origQty != firstPosition.positionAmt) {
-                            if (openOrders.isNotEmpty()) {
-                                repository.cancelOpenOrders(firstPosition.symbol)
-                            }
-                            val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
-                            val takeProfitPrice = state.currentAverageEntryPrice * (1 + if (numberOfInputs > 30) TAKE_PROFIT_PERCENT_FOR_BAD_POSITION else TAKE_PROFIT_PERCENT)
-                            repository.setTP(
-                                symbol = firstPosition.symbol,
-                                side = "SELL",
-                                quantity = firstPosition.positionAmt,
-                                closePrice = takeProfitPrice.toString()
-                            )
-                        }
+                        setTP(firstPosition, openOrders)
                         val markPrice = firstPosition.markPrice.toDoubleOrNull()
                         val entryPrice = firstPosition.entryPrice.toDoubleOrNull()
                         if (markPrice != null && entryPrice != null) {
@@ -261,6 +250,53 @@ class TradingBotService : Service() {
                 }
             }
         }
+    }
+
+    private suspend fun setTP(position: BinancePositionResponse, openOrders: List<OpenOrderResponse>) {
+        val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
+        if (numberOfInputs > 30) {
+            val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT_FOR_BAD_POSITION)
+            repository.setTP(
+                symbol = position.symbol,
+                side = "SELL",
+                quantity = position.positionAmt,
+                closePrice = takeProfitPrice.toString()
+            )
+            return
+        }
+
+        if (openOrders.isEmpty()) {
+            setTwoTakeProfits(position)
+            return
+        }
+
+        if (openOrders.size == 2 && openOrders.all { it.origQty != position.positionAmt }) {
+            repository.cancelOpenOrders(position.symbol)
+            setTwoTakeProfits(position)
+        }
+
+        if (openOrders.size == 1 && openOrders.first().origQty != position.positionAmt) {
+            repository.cancelOpenOrders(position.symbol)
+            setTwoTakeProfits(position)
+        }
+    }
+
+    private suspend fun setTwoTakeProfits(position: BinancePositionResponse) {
+        val firstTakeProfit = state.currentAverageEntryPrice * (1 + FIRST_TAKE_PROFIT_PERCENT)
+        val secondTakeProfit = state.currentAverageEntryPrice * (1 + SECOND_TAKE_PROFIT_PERCENT)
+        val halfQuantity = position.positionAmt.toDouble() / 2
+        repository.setTP(
+            symbol = position.symbol,
+            side = "SELL",
+            quantity = halfQuantity.toString(),
+            closePrice = firstTakeProfit.toString()
+        )
+        repository.setTP(
+            symbol = position.symbol,
+            side = "SELL",
+            quantity = halfQuantity.toString(),
+            closePrice = secondTakeProfit.toString()
+        )
     }
 
     fun stop() {
