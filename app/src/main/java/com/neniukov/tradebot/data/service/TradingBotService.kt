@@ -37,12 +37,11 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 /*
-- если нет тейк профита то сделать 2 тейк профита +
-- если 2 тейк профита и размер верный то скип +
+- если нет тейк профита то сделать 2 тейк профита
+- если 2 тейк профита и размер верный то скип
 - если 2 тайк профита и размер неверный то отменить и сделать 2 новых тейка
 - если 1 тейк профит и размер верный то скип
 - если 1 тейк профит и размер неверный то отменить и сделать 2 новых тейка
-
  */
 @AndroidEntryPoint
 class TradingBotService : Service() {
@@ -255,6 +254,10 @@ class TradingBotService : Service() {
     private suspend fun setTP(position: BinancePositionResponse, openOrders: List<OpenOrderResponse>) {
         val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
         if (numberOfInputs > 30) {
+            if (openOrders.size == 1 && openOrders.first().origQty == position.positionAmt) return
+            if (openOrders.isNotEmpty()) {
+                repository.cancelOpenOrders(position.symbol)
+            }
             val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT_FOR_BAD_POSITION)
             repository.setTP(
                 symbol = position.symbol,
@@ -273,6 +276,7 @@ class TradingBotService : Service() {
         if (openOrders.size == 2 && openOrders.all { it.origQty != position.positionAmt }) {
             repository.cancelOpenOrders(position.symbol)
             setTwoTakeProfits(position)
+            return
         }
 
         if (openOrders.size == 1 && openOrders.first().origQty != position.positionAmt) {
@@ -323,7 +327,7 @@ class TradingBotService : Service() {
 
     private fun calculateSMA(candles: List<Candle>, period: Int): Double {
         if (candles.size < period) {
-            return 0.0 // Недостаточно данных
+            return 0.0
         }
         val closes = candles.takeLast(period).map { it.closePrice }
         return closes.average()
@@ -337,10 +341,7 @@ class TradingBotService : Service() {
         }
 
         try {
-            if (candles.isEmpty()) {
-                Log.e("botservice", "No candles data received.")
-                return
-            }
+            if (candles.isEmpty()) return
 
             // Убедимся, что мы обрабатываем только новые свечи
             val latestCandle = candles.last()
