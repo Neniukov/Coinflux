@@ -236,9 +236,15 @@ class TradingBotService : Service() {
                         updateNotification(title)
                     }
                     positions.emit(allPositions.map { position ->
-                        openOrders.firstOrNull { it.symbol == position.symbol }?.let { order ->
-                            position.toDomain(order.price)
-                        } ?: run { position.toDomain() }
+                        openOrders.filter { it.symbol == position.symbol }.sumOf {
+                            calculateTakeProfitUsd(
+                                position.entryPrice,
+                                it.price,
+                                it.origQty
+                            )
+                        }.let { order ->
+                            position.toDomain("%.2f".format(order))
+                        }
                     })
                     delay(orderManager.requestDelayForOpeningPosition)
                 } else {
@@ -251,24 +257,37 @@ class TradingBotService : Service() {
         }
     }
 
+    private fun calculateTakeProfitUsd(
+        avgPrice: String,
+        tpPrice: String,
+        size: String,
+    ): Double {
+        if(tpPrice.isBlank()) return 0.0
+        return (tpPrice.toDouble() - avgPrice.toDouble()) * size.toDouble()
+    }
+
     private suspend fun setTP(position: BinancePositionResponse, openOrders: List<OpenOrderResponse>) {
-        val numberOfInputs = state.totalPositionQuantity / state.baseOrderQuantity
-        if (numberOfInputs > 30) {
-            if (openOrders.size == 1 && openOrders.first().origQty == position.positionAmt) return
-            if (openOrders.isNotEmpty()) {
-                repository.cancelOpenOrders(position.symbol)
+        if (state.baseOrderQuantity != 0.0) {
+            val numberOfInputs = position.positionAmt.toDouble() / state.baseOrderQuantity
+            if (numberOfInputs > 30) {
+                if (openOrders.size == 1 && openOrders.first().origQty == position.positionAmt) return
+                if (openOrders.isNotEmpty()) {
+                    repository.cancelOpenOrders(position.symbol)
+                }
+
+                val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT_FOR_BAD_POSITION)
+                repository.setTP(
+                    symbol = position.symbol,
+                    side = "SELL",
+                    quantity = position.positionAmt,
+                    closePrice = takeProfitPrice.toString()
+                )
+                return
             }
-            val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT_FOR_BAD_POSITION)
-            repository.setTP(
-                symbol = position.symbol,
-                side = "SELL",
-                quantity = position.positionAmt,
-                closePrice = takeProfitPrice.toString()
-            )
-            return
         }
 
         if (openOrders.isEmpty()) {
+            Log.e("botservice", "no orders and set 2 orders")
             setTwoTakeProfits(position)
             return
         }
@@ -295,6 +314,7 @@ class TradingBotService : Service() {
             quantity = halfQuantity.toString(),
             closePrice = firstTakeProfit.toString()
         )
+        delay(2000)
         repository.setTP(
             symbol = position.symbol,
             side = "SELL",
@@ -335,10 +355,7 @@ class TradingBotService : Service() {
 
     // Основная функция для запуска торговой логики
     private suspend fun runTradingLogic(candles: List<Candle>) {
-        if (!state.isActive) {
-            Log.e("botservice", "Bot is not active. Exiting runTradingLogic.")
-            return
-        }
+        if (!state.isActive) return
 
         try {
             if (candles.isEmpty()) return
@@ -346,13 +363,7 @@ class TradingBotService : Service() {
             // Убедимся, что мы обрабатываем только новые свечи
             val latestCandle = candles.last()
             val latestCandleStartTimeMillis = latestCandle.startTime.toLong()
-            if (latestCandleStartTimeMillis <= state.lastCandleTime) {
-                Log.e(
-                    "botservice",
-                    "No new candle or already processed. Last processed: ${state.lastCandleTime}, Current: $latestCandleStartTimeMillis"
-                )
-                return
-            }
+            if (latestCandleStartTimeMillis <= state.lastCandleTime) return
             state = state.copy(lastCandleTime = latestCandleStartTimeMillis)
 
             val currentPrice = latestCandle.closePrice
@@ -360,25 +371,19 @@ class TradingBotService : Service() {
                 candles.dropLast(1),
                 SMA_PERIOD
             ) // SMA рассчитываем на предыдущих 15 свечах, исключая текущую формирующуюся
-            Log.e("botservice", "Current Price: $currentPrice, 15-bar SMA: $sma")
 
             if (!state.isInPosition) {
                 // Логика для открытия первой позиции LONG
                 if (currentPrice > sma) {
                     openInitialLongPosition(currentPrice)
-                } else {
-                    Log.e("botservice", "Price is not above SMA. Waiting for entry signal.")
                 }
             }
         } catch (e: Exception) {
-            Log.e("botservice", "Error in runTradingLogic: ${e.message}")
             e.printStackTrace()
         }
     }
 
     private suspend fun openInitialLongPosition(currentPrice: Double) {
-        Log.e("botservice", "Signal to open initial LONG position detected. Current Price: $currentPrice")
-
         val orderResult =
             repository.placeMarketOrder(cryptoData?.symbol.orEmpty(), "Buy", cryptoData?.qty.orEmpty())
 
@@ -405,18 +410,11 @@ class TradingBotService : Service() {
         val percentageOfEntryPrice = if (numberOfInputs > 10) 0.03 else 0.02
         val differenceForEntry = entryPrice * percentageOfEntryPrice
         if (entryPrice - markPrice < differenceForEntry) {
-            Log.e(
-                "botservice",
-                "Not adding to position. entryPrice: $entryPrice, markPrice: $markPrice, differenceForEntry: $differenceForEntry"
-            )
             return
         }
         if (orderQuantity <= 0) {
-            Log.e("botservice", "Base order quantity is zero or negative. Cannot add to position.")
             return
         }
-
-        Log.e("botservice", "Adding to position. Quantity: $orderQuantity, Current Price: $position")
         repository.placeMarketOrder(cryptoData?.symbol.orEmpty(), "Buy", orderQuantity.toString())
     }
 }

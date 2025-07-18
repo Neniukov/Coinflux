@@ -1,7 +1,6 @@
 package com.neniukov.tradebot.data.binance.mapper
 
 import com.neniukov.tradebot.data.binance.model.response.BinancePositionResponse
-import com.neniukov.tradebot.data.model.response.PositionResponse
 import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
 
@@ -16,7 +15,7 @@ fun BinancePositionResponse.toDomain(takeProfit: String? = null): CurrentPositio
         size = positionAmt,
         stopLoss = "",
         symbol = symbol,
-        takeProfit = takeProfit.orEmpty(),
+        takeProfitUsd = takeProfit.orEmpty(),
         unrealisedPnl = unRealizedProfit.orEmpty()
     )
 }
