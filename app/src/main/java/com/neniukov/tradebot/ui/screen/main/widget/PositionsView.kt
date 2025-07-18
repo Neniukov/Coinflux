@@ -268,13 +268,7 @@ private fun PositionItemView(
 
             Text(
                 modifier = Modifier.padding(start = 8.dp),
-                text = "${position.takeProfit} (${
-                    calculateTakeProfitUsd(
-                        position.avgPrice,
-                        position.takeProfit,
-                        position.size
-                    )
-                })",
+                text = "${position.takeProfitUsd}$",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Green,
                 fontWeight = FontWeight.SemiBold
@@ -306,23 +300,23 @@ private fun PositionItemView(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+//            Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = { onClosePosition(position) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = EndGradient,
-                    contentColor = Color.White
-                ),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            ) {
-                Text(
-                    text = stringResource(id = R.string.close_position),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 12.sp,
-                )
-            }
+//            Button(
+//                onClick = { onClosePosition(position) },
+//                shape = RoundedCornerShape(12.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = EndGradient,
+//                    contentColor = Color.White
+//                ),
+//                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+//            ) {
+//                Text(
+//                    text = stringResource(id = R.string.close_position),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    fontSize = 12.sp,
+//                )
+//            }
         }
     }
 }

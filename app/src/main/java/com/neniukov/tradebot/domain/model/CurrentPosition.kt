@@ -9,6 +9,6 @@ data class CurrentPosition(
     val size: String,
     val stopLoss: String,
     val symbol: String,
-    val takeProfit: String,
+    val takeProfitUsd: String,
     val unrealisedPnl: String
 )
