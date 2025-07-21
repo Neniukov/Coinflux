@@ -6,9 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.util.Log
 import com.neniukov.tradebot.data.local.SharedPrefs
-import com.neniukov.tradebot.data.model.response.PositionResponse
 import com.neniukov.tradebot.data.service.TradingBotService
 import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.defaultData
@@ -32,7 +30,7 @@ class BotViewModel @Inject constructor(
     private val application: Application,
     private val getAllTickersUseCase: GetAllTickersUseCase,
     private val prefs: SharedPrefs,
-    private val connectBybitUseCase: ConnectToExchangeUseCase,
+    private val connectToExchangeUseCase: ConnectToExchangeUseCase,
     private val getTickerInfoUseCase: GetTickerInfoUseCase,
     private val leverageUseCase: LeverageUseCase,
     private val placeOrderUseCase: PlaceOrderUseCase
@@ -176,18 +174,15 @@ class BotViewModel @Inject constructor(
         tickers.value = allTickers.filter { it.startsWith(text, true) }
     }
 
-    fun connectToBybit(apikey: String, secretKey: String) {
+    fun connectToExchange(apikey: String, secretKey: String) {
         doLaunch(
-            job = { connectBybitUseCase(apikey, secretKey) },
+            job = { connectToExchangeUseCase(apikey, secretKey) },
             onSuccess = { balance ->
                 val userBalance = balance.toDoubleOrNull()
-                Log.e("macligs", "User balance: $userBalance")
-//                if (userBalance != null) {
                 prefs.saveApiKey(apikey)
                 prefs.saveSecretKey(secretKey)
                 isLoggedIn.emit(true)
                 showLogIn.emit(false)
-//                }
             }
         )
     }
@@ -208,7 +203,6 @@ class BotViewModel @Inject constructor(
     }
 
     fun updateLeverage(leverage: Float) {
-        Log.e("macldaa", "Update leverage: $leverage")
         ticker.value = ticker.value.copy(leverage = leverage.toInt())
     }
 
