@@ -18,12 +18,12 @@
     <string name="mark_price">Mark price</string>
     <string name="tp">TP</string>
     <string name="sl">SL</string>
-    <string name="enter_keys">Enter your Bybit keys</string>
+    <string name="enter_keys">Enter your Binance keys</string>
     <string name="api_key">API KEY</string>
     <string name="secret_key">API SECRET KEY</string>
     <string name="connect">Connect</string>
     <string name="searching_positions">You can minimize the application. The bot will continue to search for entry points in the background.</string>
-    <string name="connect_to_bybit">Connect to Bybit</string>
+    <string name="connect_to_bybit">Connect to Binance</string>
     <string name="logout_title">Logout</string>
     <string name="logout_message">Are you sure you want to log out?</string>
     <string name="exit">Exit</string>
@@ -42,4 +42,8 @@
     <string name="open_fee">Open fee:</string>
     <string name="close_fee">Close fee:</string>
     <string name="date">Date</string>
+    <string name="bot_active">Bot active</string>
+    <string name="bot_inactive">Bot inactive</string>
+    <string name="no_active_positions">No active positions</string>
+    <string name="api_keys_expired_or_invalid">API keys are invalid or expired. Please re-enter your API key and secret key.</string>
 </resources>

@@ -49,7 +49,7 @@ class NetworkModule {
         BinanceRepository(api, prefs)
 
     @Provides
-    fun provideOrderManager(): OrderManager = EmaLongOrderManager()
+    fun provideOrderManager(repository: BinanceRepository): OrderManager = EmaLongOrderManager(repository)
 
     @Provides
     @Singleton

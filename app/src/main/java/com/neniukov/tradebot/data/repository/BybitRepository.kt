@@ -99,27 +99,27 @@ class BybitRepository @Inject constructor(
         val apiTimestamp = correctedTime.toString()
         val recvWindow = "10000"
 
-        val (tp, sl) = orderManager.getTPAndSL(candles, currentPosition)
+//        val (tp, sl) = orderManager.getTPAndSL(candles, currentPosition)
 
-        val body = StopLossRequest(
-            symbol = currentPosition.symbol,
-            takeProfit = tp.toString(),
-            stopLoss = sl.toString(),
-            positionIdx = currentPosition.positionIdx,
-        )
+//        val body = StopLossRequest(
+//            symbol = currentPosition.symbol,
+//            takeProfit = tp.toString(),
+//            stopLoss = sl.toString(),
+//            positionIdx = currentPosition.positionIdx,
+//        )
 
-        val jsonBody = Gson().toJson(body)
-
-        val stringToSign = apiTimestamp + apiKey + recvWindow + jsonBody
-        val signature = generateSignature(stringToSign, apiSecretKey)
-
-        bybitService.setTPAndSL(
-            apiKey = apiKey,
-            timestamp = apiTimestamp,
-            signature = signature,
-            recvWindow = recvWindow,
-            body = body
-        )
+//        val jsonBody = Gson().toJson(body)
+//
+//        val stringToSign = apiTimestamp + apiKey + recvWindow + jsonBody
+//        val signature = generateSignature(stringToSign, apiSecretKey)
+//
+//        bybitService.setTPAndSL(
+//            apiKey = apiKey,
+//            timestamp = apiTimestamp,
+//            signature = signature,
+//            recvWindow = recvWindow,
+//            body = body
+//        )
     }
 
     suspend fun setTP(currentPosition: PositionResponse, tp: Double) {
