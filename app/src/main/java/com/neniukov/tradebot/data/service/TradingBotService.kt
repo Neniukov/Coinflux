@@ -156,7 +156,6 @@ class TradingBotService : Service() {
                         error.value = null
                     }
                 }
-
                 delay(orderManager.requestDelay)
             }
         }
