@@ -6,12 +6,11 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
-import android.util.Log
 import com.neniukov.tradebot.data.local.SharedPrefs
-import com.neniukov.tradebot.data.model.response.PositionResponse
 import com.neniukov.tradebot.data.service.TradingBotService
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.defaultData
-import com.neniukov.tradebot.domain.usecase.ConnectBybitUseCase
+import com.neniukov.tradebot.domain.usecase.ConnectToExchangeUseCase
 import com.neniukov.tradebot.domain.usecase.GetAllTickersUseCase
 import com.neniukov.tradebot.domain.usecase.GetTickerInfoUseCase
 import com.neniukov.tradebot.domain.usecase.LeverageUseCase
@@ -31,7 +30,7 @@ class BotViewModel @Inject constructor(
     private val application: Application,
     private val getAllTickersUseCase: GetAllTickersUseCase,
     private val prefs: SharedPrefs,
-    private val connectBybitUseCase: ConnectBybitUseCase,
+    private val connectToExchangeUseCase: ConnectToExchangeUseCase,
     private val getTickerInfoUseCase: GetTickerInfoUseCase,
     private val leverageUseCase: LeverageUseCase,
     private val placeOrderUseCase: PlaceOrderUseCase
@@ -40,7 +39,7 @@ class BotViewModel @Inject constructor(
     private val ticker = MutableStateFlow(defaultData())
     val tickerFlow = ticker.asStateFlow()
 
-    private val positions = MutableStateFlow<List<PositionResponse>?>(null)
+    private val positions = MutableStateFlow<List<CurrentPosition>?>(null)
     val positionsFlow = positions.asStateFlow()
 
     private val isWorking = MutableStateFlow(false)
@@ -92,7 +91,9 @@ class BotViewModel @Inject constructor(
 
             launch {
                 botService?.get()?.walletBalanceFlow?.collectLatest {
-                    walletBalance.value = it
+                    walletBalance.value = it?.toDoubleOrNull()
+                        ?.let { balance -> String.format("%.2f", balance) }
+                        ?: "-.-"
                 }
             }
 
@@ -173,18 +174,15 @@ class BotViewModel @Inject constructor(
         tickers.value = allTickers.filter { it.startsWith(text, true) }
     }
 
-    fun connectToBybit(apikey: String, secretKey: String) {
+    fun connectToExchange(apikey: String, secretKey: String) {
         doLaunch(
-            job = { connectBybitUseCase(apikey, secretKey) },
+            job = { connectToExchangeUseCase(apikey, secretKey) },
             onSuccess = { balance ->
                 val userBalance = balance.toDoubleOrNull()
-                Log.e("macligs", "User balance: $userBalance")
-//                if (userBalance != null) {
                 prefs.saveApiKey(apikey)
                 prefs.saveSecretKey(secretKey)
                 isLoggedIn.emit(true)
                 showLogIn.emit(false)
-//                }
             }
         )
     }
@@ -205,7 +203,6 @@ class BotViewModel @Inject constructor(
     }
 
     fun updateLeverage(leverage: Float) {
-        Log.e("macldaa", "Update leverage: $leverage")
         ticker.value = ticker.value.copy(leverage = leverage.toInt())
     }
 
@@ -213,7 +210,7 @@ class BotViewModel @Inject constructor(
         showLogIn.value = true
     }
 
-    fun closePosition(position: PositionResponse) {
+    fun closePosition(position: CurrentPosition) {
         doLaunch(
             job = {
                 placeOrderUseCase(position.symbol, position.side, position.size)

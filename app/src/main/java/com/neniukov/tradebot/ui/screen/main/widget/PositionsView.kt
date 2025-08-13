@@ -58,7 +58,7 @@ import com.airbnb.lottie.compose.LottieConstants
 import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.neniukov.tradebot.R
-import com.neniukov.tradebot.data.model.response.PositionResponse
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
 import com.neniukov.tradebot.ui.theme.EndGradient
 import com.neniukov.tradebot.ui.theme.Gray
@@ -67,8 +67,8 @@ import com.neniukov.tradebot.ui.theme.LightGray
 import com.neniukov.tradebot.ui.theme.Red
 
 fun LazyListScope.positionsView(
-    positions: State<List<PositionResponse>?>,
-    onClosePosition: (PositionResponse) -> Unit,
+    positions: State<List<CurrentPosition>?>,
+    onClosePosition: (CurrentPosition) -> Unit,
     onStatisticsClick: () -> Unit
 ) {
     item(key = "positions_title") {
@@ -143,8 +143,8 @@ fun LazyListScope.positionsView(
 @Composable
 private fun PositionItemView(
     modifier: Modifier,
-    position: PositionResponse,
-    onClosePosition: (PositionResponse) -> Unit
+    position: CurrentPosition,
+    onClosePosition: (CurrentPosition) -> Unit
 ) {
     Column(
         modifier = modifier
@@ -268,13 +268,7 @@ private fun PositionItemView(
 
             Text(
                 modifier = Modifier.padding(start = 8.dp),
-                text = "${position.takeProfit} (${
-                    calculateTakeProfitUsd(
-                        position.avgPrice,
-                        position.takeProfit,
-                        position.size
-                    )
-                })",
+                text = "${position.takeProfitUsd}$",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Green,
                 fontWeight = FontWeight.SemiBold
@@ -306,23 +300,23 @@ private fun PositionItemView(
                 )
             }
 
-            Spacer(modifier = Modifier.weight(1f))
+//            Spacer(modifier = Modifier.weight(1f))
 
-            Button(
-                onClick = { onClosePosition(position) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = EndGradient,
-                    contentColor = Color.White
-                ),
-                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
-            ) {
-                Text(
-                    text = stringResource(id = R.string.close_position),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 12.sp,
-                )
-            }
+//            Button(
+//                onClick = { onClosePosition(position) },
+//                shape = RoundedCornerShape(12.dp),
+//                colors = ButtonDefaults.buttonColors(
+//                    containerColor = EndGradient,
+//                    contentColor = Color.White
+//                ),
+//                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 0.dp),
+//            ) {
+//                Text(
+//                    text = stringResource(id = R.string.close_position),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    fontSize = 12.sp,
+//                )
+//            }
         }
     }
 }
@@ -330,6 +324,7 @@ private fun PositionItemView(
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun PnlView(unrealisedPnl: String) {
+    if (unrealisedPnl.isBlank()) return
     val number = unrealisedPnl.toDouble()
     val pnl = String.format("%.2f", number)
     val previousBalance = remember { mutableStateOf(pnl) }

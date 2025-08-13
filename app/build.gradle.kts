@@ -27,9 +27,6 @@ android {
         signingConfigs {
             create("release") {
                 storeFile = file("../trade_bot_key")
-                storePassword = "tradebot2025"
-                keyAlias = "alias_tradebot_2025"
-                keyPassword = "tradebot2025"
             }
         }
     }
