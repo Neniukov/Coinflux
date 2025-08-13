@@ -58,11 +58,11 @@ class SharedPrefs @Inject constructor(
 
     suspend fun saveLastTicker(symbol: String, qty: String, leverage: Int) {
         val tickerJson = Gson().toJson(mapOf("symbol" to symbol, "qty" to qty, "leverage" to leverage))
-        save("LAST_TICKER", tickerJson)
+        save(LAST_TICKER, tickerJson)
     }
 
     suspend fun getLastTicker(): Triple<String, String, Int>? {
-        val tickerJson = getPreferences()[stringPreferencesKey("LAST_TICKER")] ?: return null
+        val tickerJson = getPreferences()[stringPreferencesKey(LAST_TICKER)] ?: return null
         val map = Gson().fromJson<Map<String, Any>>(tickerJson, Map::class.java)
         val symbol = map["symbol"] as? String ?: return null
         val qty = map["qty"] as? String ?: return null
@@ -89,5 +89,6 @@ class SharedPrefs @Inject constructor(
         private const val API_KEY = "API_KEY"
         private const val API_SECRET_KEY = "API_SECRET_KEY"
         private const val TICKERS = "TICKERS"
+        private const val LAST_TICKER = "LAST_TICKER"
     }
 }

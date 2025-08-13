@@ -47,6 +47,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -58,6 +59,7 @@ import com.neniukov.tradebot.ui.theme.LightGray
 import com.neniukov.tradebot.ui.theme.LightGreenGray
 import com.neniukov.tradebot.ui.theme.LightYellow
 import com.neniukov.tradebot.ui.theme.Orange
+import com.neniukov.tradebot.ui.theme.TextFieldColor
 
 @Composable
 fun LogInContent(viewModel: BotViewModel) {
@@ -84,12 +86,12 @@ fun LogInContent(viewModel: BotViewModel) {
                 text = buildAnnotatedString {
                     append("Enter your ")
                     withStyle(style = SpanStyle(color = Orange, fontWeight = FontWeight.SemiBold)) {
-                        append("Bybit")
+                        append("Binance")
                     }
                     append(" keys")
                 },
                 style = MaterialTheme.typography.bodyMedium.copy(fontSize = 22.sp),
-                color = DarkGray
+                color = White
             )
             val context = LocalContext.current
             IconButton(
@@ -99,7 +101,7 @@ fun LogInContent(viewModel: BotViewModel) {
                     modifier = Modifier.size(16.dp),
                     painter = painterResource(id = R.drawable.ic_question),
                     contentDescription = "",
-                    tint = Color.Black
+                    tint = Gray
                 )
             }
         }
@@ -116,7 +118,7 @@ fun LogInContent(viewModel: BotViewModel) {
         }
 
         ConnectBtn(enabled = isEnabled) {
-            viewModel.connectToBybit(
+            viewModel.connectToExchange(
                 apikey = apikey,
                 secretKey = secretKey,
             )
@@ -130,7 +132,7 @@ fun LogInContent(viewModel: BotViewModel) {
             text = stringResource(id = R.string.disclaimer),
             style = MaterialTheme.typography.bodyMedium,
             color = White,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            textAlign = TextAlign.Center,
         )
     }
 }
@@ -144,7 +146,7 @@ private fun ApiKeyField(apikey: String, onValueChange: (String) -> Unit) {
         text = stringResource(id = R.string.api_key),
         style = MaterialTheme.typography.bodyMedium,
         fontSize = 12.sp,
-        color = Gray
+        color = White.copy(alpha = 0.5f)
     )
 
     OutlinedTextField(
@@ -152,19 +154,18 @@ private fun ApiKeyField(apikey: String, onValueChange: (String) -> Unit) {
             .padding(top = 4.dp)
             .fillMaxWidth()
             .background(
-                color = LightGreenGray,
+                color = TextFieldColor,
                 shape = RoundedCornerShape(20.dp)
             ),
         value = apikey,
         onValueChange = onValueChange,
-        textStyle = MaterialTheme.typography.bodyLarge,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = White),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = LightGreenGray,
-            unfocusedContainerColor = LightGreenGray,
-            disabledContainerColor = LightGreenGray,
-            focusedBorderColor = LightGreenGray,
-            unfocusedBorderColor = LightGreenGray,
-            cursorColor = LightGray
+            focusedContainerColor = TextFieldColor,
+            unfocusedContainerColor = TextFieldColor,
+            disabledContainerColor = TextFieldColor,
+            focusedBorderColor = TextFieldColor,
+            unfocusedBorderColor = TextFieldColor,
         ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next),
         shape = RoundedCornerShape(20.dp),
@@ -181,7 +182,7 @@ private fun SecretKeyField(secretKey: String, onValueChange: (String) -> Unit) {
         text = stringResource(id = R.string.secret_key),
         style = MaterialTheme.typography.bodyMedium,
         fontSize = 12.sp,
-        color = Gray
+        color = White.copy(alpha = 0.5f)
     )
 
     OutlinedTextField(
@@ -189,19 +190,18 @@ private fun SecretKeyField(secretKey: String, onValueChange: (String) -> Unit) {
             .padding(top = 4.dp)
             .fillMaxWidth()
             .background(
-                color = LightGreenGray,
+                color = TextFieldColor,
                 shape = RoundedCornerShape(20.dp)
             ),
         value = secretKey,
         onValueChange = onValueChange,
-        textStyle = MaterialTheme.typography.bodyLarge,
+        textStyle = MaterialTheme.typography.bodyLarge.copy(color = White),
         colors = OutlinedTextFieldDefaults.colors(
-            focusedContainerColor = LightGreenGray,
-            unfocusedContainerColor = LightGreenGray,
-            disabledContainerColor = LightGreenGray,
-            focusedBorderColor = LightGreenGray,
-            unfocusedBorderColor = LightGreenGray,
-            cursorColor = LightGray
+            focusedContainerColor = TextFieldColor,
+            unfocusedContainerColor = TextFieldColor,
+            disabledContainerColor = TextFieldColor,
+            focusedBorderColor = TextFieldColor,
+            unfocusedBorderColor = TextFieldColor,
         ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
         shape = RoundedCornerShape(20.dp),

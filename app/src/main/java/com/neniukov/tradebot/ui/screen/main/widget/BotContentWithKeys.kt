@@ -54,6 +54,7 @@ import com.airbnb.lottie.compose.animateLottieCompositionAsState
 import com.airbnb.lottie.compose.rememberLottieComposition
 import com.neniukov.tradebot.R
 import com.neniukov.tradebot.data.model.response.PositionResponse
+import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.ui.dialog.DialogData
 import com.neniukov.tradebot.ui.dialog.ConfirmationDialog
 import com.neniukov.tradebot.ui.screen.main.BotViewModel
@@ -68,7 +69,7 @@ fun BotContentWithKeys(viewModel: BotViewModel, onStatisticsClick: () -> Unit) {
     val positions = viewModel.positionsFlow.collectAsState()
     var isChecked by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
-    var clickedPosition by remember { mutableStateOf<PositionResponse?>(null) }
+    var clickedPosition by remember { mutableStateOf<CurrentPosition?>(null) }
 
     LazyColumn(modifier = Modifier.fillMaxSize()) {
         item(key = "logout") {
@@ -80,47 +81,47 @@ fun BotContentWithKeys(viewModel: BotViewModel, onStatisticsClick: () -> Unit) {
         }
 
         item(key = "bot settings") {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(id = R.string.currency_mode),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 16.sp,
-                    color = Color.White,
-                    fontWeight = FontWeight.Medium
-                )
-
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    modifier = Modifier.padding(end = 8.dp),
-                    text = stringResource(id = R.string.manual),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 12.sp,
-                    color = Color.White
-                )
-                Switch(
-                    checked = isChecked,
-                    onCheckedChange = { isChecked = it },
-                    colors = SwitchDefaults.colors(
-                        checkedTrackColor = Gray,
-                        uncheckedTrackColor = Gray,
-                        checkedThumbColor = Yellow,
-                        uncheckedThumbColor = Yellow,
-                        uncheckedBorderColor = Gray,
-                    )
-                )
-                Text(
-                    modifier = Modifier.padding(start = 8.dp),
-                    text = stringResource(id = R.string.auto),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontSize = 12.sp,
-                    color = Yellow
-                )
-            }
+//            Row(
+//                modifier = Modifier.fillMaxWidth(),
+//                horizontalArrangement = Arrangement.SpaceBetween,
+//                verticalAlignment = Alignment.CenterVertically,
+//            ) {
+//                Text(
+//                    text = stringResource(id = R.string.currency_mode),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    fontSize = 16.sp,
+//                    color = Color.White,
+//                    fontWeight = FontWeight.Medium
+//                )
+//
+//                Spacer(modifier = Modifier.weight(1f))
+//
+//                Text(
+//                    modifier = Modifier.padding(end = 8.dp),
+//                    text = stringResource(id = R.string.manual),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    fontSize = 12.sp,
+//                    color = Color.White
+//                )
+//                Switch(
+//                    checked = isChecked,
+//                    onCheckedChange = { isChecked = it },
+//                    colors = SwitchDefaults.colors(
+//                        checkedTrackColor = Gray,
+//                        uncheckedTrackColor = Gray,
+//                        checkedThumbColor = Yellow,
+//                        uncheckedThumbColor = Yellow,
+//                        uncheckedBorderColor = Gray,
+//                    )
+//                )
+//                Text(
+//                    modifier = Modifier.padding(start = 8.dp),
+//                    text = stringResource(id = R.string.auto),
+//                    style = MaterialTheme.typography.bodyMedium,
+//                    fontSize = 12.sp,
+//                    color = Yellow
+//                )
+//            }
 
             BotSettingsView(!isChecked, Modifier.animateItem(), viewModel)
         }

@@ -3,6 +3,8 @@ package com.neniukov.tradebot.data.model.mapper
 import com.neniukov.tradebot.domain.model.Candle
 
 fun mapToCandle(list: List<String>): Candle {
+//    val turnover = list[6] // bybit
+    val turnover = list[7] // binance
     return Candle(
         startTime = list[0],
         openPrice = list[1].toDouble(),
@@ -10,6 +12,6 @@ fun mapToCandle(list: List<String>): Candle {
         lowPrice = list[3].toDouble(),
         closePrice = list[4].toDouble(),
         volume = list[5].toDouble(),
-        turnover = list[6]
+        turnover = turnover
     )
 }
