@@ -6,4 +6,4 @@ Trading bot for Binance
 - There are 2 take profits with equal volume:
   · 1 half closes at +1% of the entry price
   · 2 half closes at +1.5% of the entry price
-- If there were more than 30 additional buys, then take profit is set at 0.2% of the entry price (The market is falling sharply and you need to close the position faster to save capital)
+- If there were more than 30 additional buys, then take profit is set at 0.3% of the entry price (The market is falling sharply and you need to close the position faster to save capital)
