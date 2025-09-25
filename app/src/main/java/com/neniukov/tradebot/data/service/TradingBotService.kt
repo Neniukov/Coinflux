@@ -141,6 +141,7 @@ class TradingBotService : Service() {
 
     fun startBot() {
         state = state.copy(isActive = true)
+        updateNotification(getString(R.string.bot_active))
         job = scope.launch {
             while (isActive) {
                 cryptoData?.let { cryptoData ->
@@ -148,7 +149,6 @@ class TradingBotService : Service() {
                         val list = repository.getMarkPriceKline(cryptoData.symbol, orderManager.interval,)
                         val candles = list.map { mapToCandle(it) }
                         runTradingLogic(candles)
-                        updateNotification(getString(R.string.bot_active))
                     } catch (e: Exception) {
                         error.value = e.message.orEmpty()
                         handleError(e)
@@ -213,7 +213,7 @@ class TradingBotService : Service() {
                         positions.emit(allPositions.map { position ->
                             openOrders.filter { it.symbol == position.symbol }
                                 .sumOf { calculateTakeProfitUsd(position.entryPrice, it.price, it.origQty) }
-                                .let { order -> position.toDomain("%.2f".format(order)) }
+                                .let { takeProfit -> position.toDomain("%.2f".format(takeProfit), cryptoData?.qty?.toDouble()) }
                         })
 
                         delay(orderManager.requestDelayForOpeningPosition)
@@ -313,7 +313,7 @@ class TradingBotService : Service() {
                 baseOrderQuantity = cryptoData?.qty?.toDouble() ?: 0.0,
             )
         } else {
-            Log.e("botservice", "Failed to open initial LONG position. Status: $orderResult")
+            Log.e("botservice", "Failed to open initial LONG position")
         }
     }
 

@@ -75,8 +75,8 @@ class BinanceRepository @Inject constructor(
             }?.let { leverageInfo ->
                 val maxLeverage = leverageInfo.brackets.maxOfOrNull { it.initialLeverage } ?: 1
                 val minLeverage = leverageInfo.brackets.minOfOrNull { it.initialLeverage } ?: 1
-                return@withContext Ticker(symbol, "", minLeverage.toString(), maxLeverage.toString())
-            } ?: kotlin.run { Ticker(symbol, "") }
+                Ticker(symbol, "", minLeverage.toString(), maxLeverage.toString())
+            } ?: run { Ticker(symbol, "") }
         }
     }
 
@@ -139,11 +139,9 @@ class BinanceRepository @Inject constructor(
             if (apiKey.isNullOrEmpty() || apiSecretKey.isNullOrEmpty()) {
                 return@withContext null
             }
-            val rawPrice = closePrice.toDouble()
-            val formattedPrice = String.format(Locale.US, "%.4f", rawPrice)
             val timestamp = api.getServerTime().serverTime
             val query =
-                "symbol=$symbol&side=$side&type=LIMIT&quantity=$quantity&price=$formattedPrice&timeInForce=GTC&reduceOnly=true&timestamp=$timestamp"
+                "symbol=$symbol&side=$side&type=LIMIT&quantity=$quantity&price=$closePrice&timeInForce=GTC&reduceOnly=true&timestamp=$timestamp"
             val signature = generateSignature(query, apiSecretKey)
 
             api.setTakeProfit(
@@ -151,7 +149,7 @@ class BinanceRepository @Inject constructor(
                 symbol = symbol,
                 side = side,
                 quantity = quantity,
-                price = formattedPrice,
+                price = closePrice,
                 timestamp = timestamp,
                 signature = signature
             )

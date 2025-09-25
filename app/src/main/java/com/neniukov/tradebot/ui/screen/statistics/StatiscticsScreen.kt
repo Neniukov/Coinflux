@@ -169,7 +169,7 @@ private fun StatisticsCard(modifier: Modifier, item: StatisticsResponse) {
                 )
             }
 
-            PnlView(item.closedPnl)
+//            PnlView(item.closedPnl)
         }
 
         Column(

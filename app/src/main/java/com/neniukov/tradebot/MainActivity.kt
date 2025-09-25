@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                 SideEffect {
                     systemUiController.setStatusBarColor(
                         color = Color.Transparent,
-                        darkIcons = true
+                        darkIcons = false
                     )
                 }
                 NavHost(navController = navController, startDestination = "bot") {

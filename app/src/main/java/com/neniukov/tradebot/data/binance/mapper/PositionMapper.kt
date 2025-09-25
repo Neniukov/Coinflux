@@ -4,7 +4,7 @@ import com.neniukov.tradebot.data.binance.model.response.BinancePositionResponse
 import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
 
-fun BinancePositionResponse.toDomain(takeProfit: String? = null): CurrentPosition {
+fun BinancePositionResponse.toDomain(takeProfit: String?, baseSize: Double?): CurrentPosition {
     val positionIM = entryPrice.toDouble() * positionAmt.toDouble() / leverage.toDouble()
     return CurrentPosition(
         avgPrice = entryPrice,
@@ -16,6 +16,7 @@ fun BinancePositionResponse.toDomain(takeProfit: String? = null): CurrentPositio
         stopLoss = "",
         symbol = symbol,
         takeProfitUsd = takeProfit.orEmpty(),
-        unrealisedPnl = unRealizedProfit.orEmpty()
+        unrealisedPnl = unRealizedProfit.orEmpty(),
+        averaging = baseSize?.let { (positionAmt.toDouble() / (baseSize / 2)).toInt() } ?: 1
     )
 }

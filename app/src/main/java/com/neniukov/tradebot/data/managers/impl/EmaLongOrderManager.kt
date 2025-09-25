@@ -6,6 +6,7 @@ import com.neniukov.tradebot.data.binance.model.response.OpenOrderResponse
 import com.neniukov.tradebot.data.managers.OrderManager
 import com.neniukov.tradebot.domain.model.TradingState
 import kotlinx.coroutines.delay
+import java.util.Locale
 import javax.inject.Inject
 
 class EmaLongOrderManager @Inject constructor(private val repository: BinanceRepository) : OrderManager {
@@ -24,22 +25,6 @@ class EmaLongOrderManager @Inject constructor(private val repository: BinanceRep
         openOrders: List<OpenOrderResponse>
     ) {
         if (state.baseOrderQuantity == 0.0) return
-        val numberOfInputs = position.positionAmt.toDouble() / (state.baseOrderQuantity / 2)
-        if (numberOfInputs > 30) {
-            if (openOrders.size == 1 && openOrders.first().origQty == position.positionAmt) return
-            if (openOrders.isNotEmpty()) {
-                repository.cancelOpenOrders(position.symbol)
-            }
-
-            val takeProfitPrice = state.currentAverageEntryPrice * (1 + TAKE_PROFIT_PERCENT_FOR_BAD_POSITION)
-            repository.setTP(
-                symbol = position.symbol,
-                side = "SELL",
-                quantity = position.positionAmt,
-                closePrice = takeProfitPrice.toString()
-            )
-            return
-        }
 
         if (openOrders.isEmpty()) {
             setTwoTakeProfits(state, position)
@@ -63,11 +48,10 @@ class EmaLongOrderManager @Inject constructor(private val repository: BinanceRep
         val entryPrice = position.entryPrice.toDoubleOrNull()
         if (markPrice == null || entryPrice == null || state.baseOrderQuantity == 0.0) return
 
-        // Здесь мы добавляем позицию с половиной объема от базового ордера
-        val orderQuantity = state.baseOrderQuantity / 2
+        val orderQuantity = state.baseOrderQuantity * 0.4
 
         val numberOfInputs = state.totalPositionQuantity / orderQuantity
-        val percentageOfEntryPrice = if (numberOfInputs > 10) 0.03 else 0.02
+        val percentageOfEntryPrice = if(numberOfInputs < 6) 0.01 else if (numberOfInputs > 12) 0.03 else 0.02
         val differenceForEntry = entryPrice * percentageOfEntryPrice
         if (entryPrice - markPrice < differenceForEntry) {
             return
@@ -75,33 +59,45 @@ class EmaLongOrderManager @Inject constructor(private val repository: BinanceRep
         if (orderQuantity <= 0) {
             return
         }
-        repository.placeMarketOrder(position.symbol, "Buy", orderQuantity.toString())
+        repository.placeMarketOrder(position.symbol, "Buy", orderQuantity.toInt().toString())
     }
 
     private suspend fun setTwoTakeProfits(state: TradingState, position: BinancePositionResponse) {
-        val firstTakeProfit =
-            state.currentAverageEntryPrice * (1 + FIRST_TAKE_PROFIT_PERCENT)
-        val secondTakeProfit =
-            state.currentAverageEntryPrice * (1 + SECOND_TAKE_PROFIT_PERCENT)
-        val halfQuantity = position.positionAmt.toDouble() / 2
+        val orderQuantity = state.baseOrderQuantity * 0.4
+        val numberOfInputs = state.totalPositionQuantity / orderQuantity
+
+        val firstTakeProfit = if (numberOfInputs > 32) {
+            state.currentAverageEntryPrice * (1 + FIRST_TP_PERCENT_FOR_BAD_POSITION)
+        } else {
+            state.currentAverageEntryPrice * (1 + FIRST_TP_PERCENT)
+        }
+        val secondTakeProfit = if (numberOfInputs > 32) {
+            state.currentAverageEntryPrice * (1 + SECOND_TP_PERCENT_FOR_BAD_POSITION)
+        } else {
+            state.currentAverageEntryPrice * (1 + SECOND_TP_PERCENT)
+        }
+
+        val halfQuantity = (position.positionAmt.toDouble() / 2).toInt()
+
         repository.setTP(
             symbol = position.symbol,
             side = "SELL",
             quantity = halfQuantity.toString(),
-            closePrice = firstTakeProfit.toString()
+            closePrice =  String.format(Locale.US, "%.5f", firstTakeProfit)
         )
         delay(2000)
         repository.setTP(
             symbol = position.symbol,
             side = "SELL",
             quantity = halfQuantity.toString(),
-            closePrice = secondTakeProfit.toString()
+            closePrice = String.format(Locale.US, "%.5f", secondTakeProfit)
         )
     }
 
     companion object {
-       private const val FIRST_TAKE_PROFIT_PERCENT = 0.01 // 1%
-       private const val SECOND_TAKE_PROFIT_PERCENT = 0.015 // 1.5%
-       private const val TAKE_PROFIT_PERCENT_FOR_BAD_POSITION = 0.003 // 0.3%
+       private const val FIRST_TP_PERCENT = 0.012 // 1%
+       private const val SECOND_TP_PERCENT = 0.012 // 1.5%
+       private const val FIRST_TP_PERCENT_FOR_BAD_POSITION = 0.003 // 0.3%
+       private const val SECOND_TP_PERCENT_FOR_BAD_POSITION = 0.005 // 0.5%
     }
 }

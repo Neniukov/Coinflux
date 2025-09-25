@@ -15,11 +15,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.with
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -29,10 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -44,10 +39,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -60,10 +53,14 @@ import com.airbnb.lottie.compose.rememberLottieComposition
 import com.neniukov.tradebot.R
 import com.neniukov.tradebot.domain.model.CurrentPosition
 import com.neniukov.tradebot.domain.model.Side
-import com.neniukov.tradebot.ui.theme.EndGradient
+import com.neniukov.tradebot.ui.theme.Dark40
 import com.neniukov.tradebot.ui.theme.Gray
 import com.neniukov.tradebot.ui.theme.Green
 import com.neniukov.tradebot.ui.theme.LightGray
+import com.neniukov.tradebot.ui.theme.PositionGreenBgColor
+import com.neniukov.tradebot.ui.theme.PositionGreenTextColor
+import com.neniukov.tradebot.ui.theme.PositionRedBgColor
+import com.neniukov.tradebot.ui.theme.PositionRedTextColor
 import com.neniukov.tradebot.ui.theme.Red
 
 fun LazyListScope.positionsView(
@@ -86,13 +83,13 @@ fun LazyListScope.positionsView(
                 fontSize = 16.sp,
                 color = Color.White
             )
-
-            Icon(
-                modifier = Modifier.size(20.dp).clickable { onStatisticsClick() },
-                imageVector = ImageVector.vectorResource(R.drawable.ic_statistics),
-                contentDescription = "Statistics",
-                tint = Color.White
-            )
+//
+//            Icon(
+//                modifier = Modifier.size(20.dp).clickable { onStatisticsClick() },
+//                imageVector = ImageVector.vectorResource(R.drawable.ic_statistics),
+//                contentDescription = "Statistics",
+//                tint = Color.White
+//            )
         }
     }
 
@@ -146,11 +143,17 @@ private fun PositionItemView(
     position: CurrentPosition,
     onClosePosition: (CurrentPosition) -> Unit
 ) {
+    val pnl = position.unrealisedPnl.toDoubleOrNull()
+    val bgColor = if (pnl != null) {
+        if (pnl >= 0) PositionGreenBgColor else PositionRedBgColor
+    } else {
+        Color.White
+    }
     Column(
         modifier = modifier
             .padding(top = 8.dp)
             .fillMaxWidth()
-            .background(color = Color.White, shape = RoundedCornerShape(30.dp))
+            .background(color = bgColor, shape = RoundedCornerShape(30.dp))
             .padding(start = 16.dp, end = 16.dp, top = 24.dp, bottom = 12.dp)
     ) {
         Row(
@@ -165,8 +168,9 @@ private fun PositionItemView(
                 color = Color.Black,
                 fontWeight = FontWeight.ExtraBold
             )
-
-            PnlView(position.unrealisedPnl)
+            if (pnl != null) {
+                PnlView(pnl)
+            }
         }
 
         Row(
@@ -216,21 +220,21 @@ private fun PositionItemView(
             ItemView(
                 modifier = itemModifier,
                 title = stringResource(id = R.string.size),
-                value = position.size,
+                value = "${position.size} (${position.averaging}x)",
                 horizontalAlignment = Alignment.Start
             )
 
             ItemView(
                 modifier = itemModifier,
                 title = stringResource(id = R.string.entry_price),
-                value = "%.4f".format(position.avgPrice.toDouble()),
+                value = "%.5f".format(position.avgPrice.toDouble()),
                 horizontalAlignment = Alignment.CenterHorizontally
             )
 
             ItemView(
                 modifier = Modifier.weight(1.4f),
                 title = stringResource(id = R.string.mark_price),
-                value = "%.4f".format(position.markPrice.toDouble()),
+                value = "%.5f".format(position.markPrice.toDouble()),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 percentageChange = calculatePriceChangePercent(position.avgPrice, position.markPrice)
             )
@@ -323,10 +327,8 @@ private fun PositionItemView(
 
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun PnlView(unrealisedPnl: String) {
-    if (unrealisedPnl.isBlank()) return
-    val number = unrealisedPnl.toDouble()
-    val pnl = String.format("%.2f", number)
+fun PnlView(unrealisedPnl: Double) {
+    val pnl = String.format("%.2f", unrealisedPnl)
     val previousBalance = remember { mutableStateOf(pnl) }
     val maxLength = maxOf(previousBalance.value.length, pnl.length)
 
@@ -353,8 +355,8 @@ fun PnlView(unrealisedPnl: String) {
                 text = char.toString(),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 16.sp,
-                    color = if (number >= 0) Green else Red,
-                    fontWeight = FontWeight.SemiBold
+                    color = if (unrealisedPnl >= 0) PositionGreenTextColor else PositionRedTextColor,
+                    fontWeight = FontWeight.Black
                 )
             )
         }
@@ -368,8 +370,8 @@ fun PnlView(unrealisedPnl: String) {
         text = " $",
         style = MaterialTheme.typography.bodyMedium,
         fontSize = 16.sp,
-        color = if (number >= 0) Green else Red,
-        fontWeight = FontWeight.ExtraBold
+        color = if (unrealisedPnl >= 0) PositionGreenTextColor else PositionRedTextColor,
+        fontWeight = FontWeight.Black
     )
 }
 
@@ -390,7 +392,7 @@ fun ItemView(
             text = title,
             style = MaterialTheme.typography.bodyMedium,
             fontSize = 12.sp,
-            color = LightGray,
+            color = Dark40,
         )
 
         if (percentageChange != null) {
@@ -408,7 +410,7 @@ fun ItemView(
                     modifier = Modifier.padding(start = 4.dp),
                     text = "(%.2f".format(percentageChange) + "%)",
                     style = MaterialTheme.typography.bodyMedium.copy(fontSize = 10.sp),
-                    color = if (percentageChange >= 0) Green else Red,
+                    color = if (percentageChange >= 0) PositionGreenTextColor else PositionRedTextColor,
                 )
             }
         } else {
