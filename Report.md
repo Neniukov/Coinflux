@@ -54,10 +54,9 @@ We recommend proceeding with the WebView implementation **only if** the followin
 
 ### **Required Implementation Conditions:**
 1.  **Localhost Serving (Mandatory):** All media must be served via a built-in Android HTTP server to ensure efficient video buffering and bypass CORS issues.
-2.  **PDF-to-Image Pipeline:** The backend must convert PDF pages into images (JPEG/WebP). Rendering raw PDFs in the WebView is strictly prohibited.
-3.  **Hardware Baseline:** Targeted hardware must have at least **3GB of RAM**.
-4.  **Watchdog System:** The Android native wrapper must implement a "Watchdog" to monitor WebView health and perform a "soft reload" if memory usage exceeds 80%.
-5.  **Offline-First Architecture:** All assets and manifests must be stored locally to ensure 100% uptime during network outages.
+2.  **Hardware Baseline:** Targeted hardware must have at least **3GB of RAM**.
+3.  **Watchdog System:** The Android native wrapper must implement a "Watchdog" to monitor WebView health and perform a "soft reload" if memory usage exceeds 80%.
+4.  **Offline-First Architecture:** All assets and manifests must be stored locally to ensure 100% uptime during network outages.
 
 ---
 
