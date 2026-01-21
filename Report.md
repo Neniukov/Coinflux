@@ -40,11 +40,6 @@ The Chromium engine generates more heat than a native player during continuous p
 ### **C. Hardware Decoder Limits**
 Android devices have a hard limit on concurrent hardware decoders (typically 2–4 instances).
 * **Risk:** Complex grids with 4+ videos will result in black screens or a fallback to software decoding, which will freeze the device.
-
-### **D. Lack of Native PDF Support**
-Android WebView does not support native PDF rendering. 
-* **Risk:** Using JS-based libraries (e.g., PDF.js) is resource-intensive and prone to crashes during long sessions.
-
 ---
 
 ## 5. Comparison vs. Current Solution
